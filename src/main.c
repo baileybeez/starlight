@@ -2,109 +2,26 @@
 #include <signal.h>
 #include <stdio.h>
 #include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include <poll.h>
 #include <openssl/ssl.h>
 
+#include "std.h"
 #include "uri.h"
+#include "ini.h"
 
 #define kBacklog 5
 #define kPollTimout 5
-#define kGeminiURIMaxLen 1024
-#define kMaxPath 256
 #define kStarlightIni "./starlight.ini"
 
-#define kIniKey_Port        "PORT"
-#define kIniKey_CertPath    "CERT"
-#define kIniKey_KeyPath     "KEY"
-#define kIniKey_ContentRoot "ROOT"
-
 #define kResponse_GeneralError   "50\r\n"
-
-struct IniSettings {
-    int port;
-    char certPath[kMaxPath];
-    char keyPath[kMaxPath];
-    char contentRoot[kMaxPath];
-};
 
 static int g_running = 1;
 void handleSignal(int signal) 
 {
     printf("Received signal %d, shutting down.\n", signal);
     g_running = 0;
-}
-
-int loadIniSettings(struct IniSettings *ini) {
-    char *line = NULL;
-    size_t len = 0;
-    char *key = NULL;
-    char *val = NULL;
-    int ret = 0;
-
-    FILE *file = fopen(kStarlightIni, "r");
-    if (file == NULL) {
-        printf ("Unable to locate Ini file. Is it missing? \n");
-        return -1;
-    }
-
-    ssize_t read;
-    while ((read = getline(&line, &len, file)) != -1) {
-        if (line[read - 1] == '\n')
-            line[read - 1] = '\0';
-
-        key = strtok(line, "=");
-        val = strtok(NULL, "=");
-
-        if (strcmp(key, kIniKey_Port) == 0) {
-            int p = atoi(val);
-            if (p < 0 || p > 65535) {
-                printf("Invalid port specified: %s \n", val);
-                goto INI_ERROR;
-            }
-            
-            ini->port = p;
-            printf("   > port set to '%d' \n", ini->port);
-        } else if (strcmp(key, kIniKey_CertPath) == 0) {
-            if (access(val, F_OK) == -1) {
-                printf("Unable to locate certificate: %s \n", val);
-                goto INI_ERROR;
-            }
-            strcpy(ini->certPath, val);
-            printf("   > cert path set to '%s' \n", ini->certPath);
-        } else if (strcmp(key, kIniKey_KeyPath) == 0) {
-            if (access(val, F_OK) == -1) {
-                printf("Unable to locate keyfile: %s \n", val);
-                goto INI_ERROR;
-            }
-            strcpy(ini->keyPath, val);
-            printf("   > key path set to '%s' \n", ini->keyPath);
-        } else if (strcmp(key, kIniKey_ContentRoot) == 0) {
-            struct stat statbuf;
-            if (stat(val, &statbuf) == 0) {
-                if (!S_ISDIR(statbuf.st_mode)) {
-                    printf("Content Root '%s' does not appear to be a directory. \n", val);
-                    goto INI_ERROR;
-                }
-
-                strcpy(ini->contentRoot, val);
-                printf("   > content root set to '%s' \n", ini->contentRoot);
-            } else {
-                printf("Could not find Content Root: %s \n", val);
-                goto INI_ERROR;
-            }
-        } else {
-            printf("Unknown key in Ini settings: %s \n", key);
-        }
-    }
-
-    ret = 1;
-INI_ERROR:
-    fclose(file);
-    return ret;
 }
 
 int initializeSocketServer(int port)
@@ -170,7 +87,7 @@ int main(int argc, char **argv)
     int ret = 0;
 
     struct IniSettings ini; 
-    ret = loadIniSettings(&ini);
+    ret = loadIniSettings(&ini, kStarlightIni);
     if (ret != 1) {
         printf("Failed to load INI file (%d).\n", ret);
         return -1;

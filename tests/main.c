@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <cstring>
+#include <string.h>
 #include "../src/uri.h"
 
 void testUri(const char *str) {
@@ -10,7 +10,7 @@ void testUri(const char *str) {
         printf("URI too long. Length is %d, Max is %d.\n", len, kMaxUri_TotalLength);
     }
     
-    Uri uri;
+    struct Uri uri;
     memset(&uri, 0, sizeof(uri));
     int ret = parseUriFromRequest(str, &uri);
     if (ret != 1) {

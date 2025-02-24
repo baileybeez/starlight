@@ -1,4 +1,5 @@
-#pragma once
+#ifndef URI_H
+#define URI_H
 
 #define kGemini_DefaultPort 1965
 
@@ -25,4 +26,6 @@ struct Uri {
     char user[kMaxUri_UserState];
 };
 
-int parseUriFromRequest(const char *req, Uri *uri);
+int parseUriFromRequest(const char *req, struct Uri *uri);
+
+#endif//URI_H

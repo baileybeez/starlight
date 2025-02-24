@@ -1,4 +1,4 @@
-#include <cstring>
+#include <string.h>
 #include <stdlib.h>
 
 #include "uri.h"
@@ -11,7 +11,7 @@
 #define kParseState_Done        6
 
 // req should appear as `gemini://domain:port/path/to/folder/document.gmi?user_state`
-int parseUriFromRequest(const char *req, Uri *uri)
+int parseUriFromRequest(const char *req, struct Uri *uri)
 {
     int lenRequest = strlen(req);
     if (lenRequest > kMaxUri_TotalLength) {
@@ -91,7 +91,10 @@ int parseUriFromRequest(const char *req, Uri *uri)
         }
     }
 
-    bool canPullAtEndOfLine = parseState == kParseState_Path || parseState == kParseState_UserState;
+    int canPullAtEndOfLine = 0;
+    if (parseState == kParseState_Path || parseState == kParseState_UserState)
+        canPullAtEndOfLine = 1;
+
     if (canPullAtEndOfLine && index <= lenRequest) {
         cc = index - start;
         if (parseState == kParseState_Path) {
