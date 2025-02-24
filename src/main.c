@@ -4,15 +4,13 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
-#include <poll.h>
 #include <openssl/ssl.h>
 
 #include "std.h"
 #include "uri.h"
 #include "ini.h"
+#include "server.h"
 
-#define kBacklog 5
-#define kPollTimout 5
 #define kStarlightIni "./starlight.ini"
 
 #define kResponse_GeneralError   "50\r\n"
@@ -22,40 +20,6 @@ void handleSignal(int signal)
 {
     printf("Received signal %d, shutting down.\n", signal);
     g_running = 0;
-}
-
-int initializeSocketServer(int port)
-{
-    // create socket
-    int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd == -1) {
-        printf("Socket creation failed. \n");
-        return -1;
-    }
-
-    // define server addy
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(port);
-
-    // bind socket
-    if (bind(server_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        printf("Bind failed.\n");
-        close(server_fd);
-        return -1;
-    }
-
-    // listen
-    if (listen(server_fd, kBacklog) < 0) {
-        printf("Failed to start listening. \n");
-        close(server_fd);
-        return -1;
-    }
-    printf("Listening on port %d ... \n", port);
-
-    return server_fd;
 }
 
 void handleRequest(const char *req, SSL *ssl) 
@@ -81,6 +45,8 @@ int main(int argc, char **argv)
     signal(SIGTERM, handleSignal);
     signal(SIGINT, handleSignal);
 
+    struct SocketServer server;
+
     SSL_CTX *ctx;
     SSL *ssl;
     char buffer[kGeminiURIMaxLen + 1] = {0};
@@ -93,29 +59,25 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    int server_fd = initializeSocketServer(ini.port);
-    if (server_fd == -1)
+    ret = initializeSocketServer(&server, ini.port);
+    if (ret != 1)
         return -1;
     
     // setup polling
-    struct pollfd fd[1];
-    fd[0].fd = server_fd;
-    fd[0].events = POLLIN;
-    fd[0].revents = 0;
 
     while (g_running == 1) {
         // poll socket for activity
-        int ret = poll(fd, 1, kPollTimout);
-        if (ret < 0)        // Error / Term
+        int ret = pollServer(&server);
+        if (ret < 0)        // Error / Terminate Request
             break;
         else if (ret == 0)  // No work
             continue;
         
-        if (fd[0].revents & POLLIN) {
+        if (serverHasIncomingConnection()) {
             // accept incoming
             struct sockaddr_in clientAddr;
             socklen_t clientLen = sizeof(clientAddr);
-            int client_fd = accept(server_fd, (struct sockaddr *)&clientAddr, &clientLen);
+            int client_fd = accept(server.hServer, (struct sockaddr *)&clientAddr, &clientLen);
             if (client_fd < 0) {
                 printf("Accept failed. \n");
                 continue;
@@ -168,6 +130,6 @@ CLOSE_CONNECTION:
     }     
 
     // close out server
-    close(server_fd);
+    close(server.hServer);
     return 0;
 }

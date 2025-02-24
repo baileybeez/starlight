@@ -3,20 +3,20 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include <sys/types.h>
+//#include <sys/types.h>
 
 #include "std.h"
 #include "ini.h"
 
 int loadIniSettings(struct IniSettings *ini, const char *iniFilePath) {
-    char *line = NULL;
+    char *line = nil;
+    char *key  = nil;
+    char *val  = nil;
     size_t len = 0;
-    char *key = NULL;
-    char *val = NULL;
     int ret = 0;
 
     FILE *file = fopen(iniFilePath, "r");
-    if (file == NULL) {
+    if (file == nil) {
         printf ("Unable to locate Ini file. Is it missing? \n");
         return -1;
     }
@@ -27,7 +27,7 @@ int loadIniSettings(struct IniSettings *ini, const char *iniFilePath) {
             line[read - 1] = '\0';
 
         key = strtok(line, "=");
-        val = strtok(NULL, "=");
+        val = strtok(nil, "=");
 
         if (strcmp(key, kIniKey_Port) == 0) {
             int p = atoi(val);
