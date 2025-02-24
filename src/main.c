@@ -1,6 +1,5 @@
-#include <iostream>
-#include <cstring>
-#include <csignal>
+#include <string.h>
+#include <signal.h>
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -32,14 +31,14 @@ struct IniSettings {
     char contentRoot[kMaxPath];
 };
 
-bool running = true;
+static int g_running = 1;
 void handleSignal(int signal) 
 {
     printf("Received signal %d, shutting down.\n", signal);
-    running = false;
+    g_running = 0;
 }
 
-int loadIniSettings(IniSettings *ini) {
+int loadIniSettings(struct IniSettings *ini) {
     char *line = NULL;
     size_t len = 0;
     char *key = NULL;
@@ -170,7 +169,7 @@ int main(int argc, char **argv)
     char buffer[kGeminiURIMaxLen + 1] = {0};
     int ret = 0;
 
-    IniSettings ini; 
+    struct IniSettings ini; 
     ret = loadIniSettings(&ini);
     if (ret != 1) {
         printf("Failed to load INI file (%d).\n", ret);
@@ -187,7 +186,7 @@ int main(int argc, char **argv)
     fd[0].events = POLLIN;
     fd[0].revents = 0;
 
-    while (running) {
+    while (g_running == 1) {
         // poll socket for activity
         int ret = poll(fd, 1, kPollTimout);
         if (ret < 0)        // Error / Term
