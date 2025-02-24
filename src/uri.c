@@ -10,6 +10,33 @@
 #define kParseState_UserState   5
 #define kParseState_Done        6
 
+void uri_finishParse_Domain(struct Uri *uri, const char *str, int start, int count) 
+{
+    memcpy(uri->domain, str + start, count);
+    uri->domain[count] = '\0';
+}
+
+void uri_finishParse_Port(struct Uri *uri, const char *str, int start, int count) 
+{
+    char strPort[kMaxUri_Port + 1] = {0};
+
+    memcpy(strPort, str + start, count);
+    strPort[count] = '\0';
+    uri->port = atoi(strPort);
+}
+
+void uri_finishParse_Path(struct Uri *uri, const char *str, int start, int count)
+{
+    memcpy(uri->path, str + start, count);
+    uri->path[count] = '\0';
+}
+
+void uri_finishParse_UserState(struct Uri *uri, const char *str, int start, int count)
+{
+    memcpy(uri->user, str + start, count);
+    uri->user[count] = '\0';
+}
+
 // req should appear as `gemini://domain:port/path/to/folder/document.gmi?user_state`
 int parseUriFromRequest(const char *req, struct Uri *uri)
 {
@@ -21,7 +48,7 @@ int parseUriFromRequest(const char *req, struct Uri *uri)
     int index = 0, start = 0, cc = 0;
     int parseState = kParseState_Scheme;
     char cb = '\0';
-    char strPort[kMaxUri_Port + 1] = {0};
+    
     while (++index < lenRequest && req[index] != '\0') {
         cb = req[index];
         cc = index - start;
@@ -45,8 +72,7 @@ int parseUriFromRequest(const char *req, struct Uri *uri)
                 if (cc > kMaxUri_Domain) {
                     return kUriParseError_InvalidDomainLen;
                 } else if (cb == ':' || cb == '/') {
-                    memcpy(uri->domain, req + start, cc);
-                    uri->domain[cc] = '\0';
+                    uri_finishParse_Domain(uri, req, start, cc);
                     start = index + 1;
                     if (cb == ':') {
                         parseState = kParseState_Port;
@@ -61,9 +87,7 @@ int parseUriFromRequest(const char *req, struct Uri *uri)
                 if (cc > kMaxUri_Port) {
                     return kUriParseError_InvalidPortLen;
                 } else if (cb == '/') {
-                    memcpy(strPort, req + start, cc);
-                    strPort[cc] = '\0';
-                    uri->port = atoi(strPort);
+                    uri_finishParse_Port(uri, req, start, cc);
                     if (uri->port < 1 || uri->port > 65535) {
                         return kUriParseError_InvalidPort;
                     }
@@ -76,8 +100,7 @@ int parseUriFromRequest(const char *req, struct Uri *uri)
                 if (cc > kMaxUri_Path) {
                     return kUriParseError_InvalidPathLen;
                 } else if (cb == '?') {
-                    memcpy(uri->path, req + start, cc);
-                    uri->path[cc] = '\0';
+                    uri_finishParse_Path(uri, req, start, cc);
                     start = index + 1;
                     parseState = kParseState_UserState;
                 }
@@ -95,16 +118,29 @@ int parseUriFromRequest(const char *req, struct Uri *uri)
     if (parseState == kParseState_Path || parseState == kParseState_UserState)
         canPullAtEndOfLine = 1;
 
-    if (canPullAtEndOfLine && index <= lenRequest) {
+    if (index <= lenRequest) {
         cc = index - start;
-        if (parseState == kParseState_Path) {
-            memcpy(uri->path, req + start, cc);
-            uri->path[cc] = '\0';
-        } else if (parseState == kParseState_UserState) {
-            memcpy(uri->user, req + start, cc);
-            uri->user[cc] = '\0';
+        switch (parseState) {
+            default: break;
+
+            case kParseState_Domain:
+                uri_finishParse_Domain(uri, req, start, cc);
+                parseState = kParseState_Done;
+                break;
+            case kParseState_Port:
+                uri_finishParse_Port(uri, req, start, cc);
+                if (uri->port > 0 && uri->port < 65535)
+                    parseState = kParseState_Done;
+                break;
+            case kParseState_Path:
+                uri_finishParse_Path(uri, req, start, cc);
+                parseState = kParseState_Done;
+                break;
+            case kParseState_UserState:
+                uri_finishParse_UserState(uri, req, start, cc);
+                parseState = kParseState_Done;
+                break;
         }
-        parseState = kParseState_Done;
     }
 
     return (parseState == kParseState_Done) ? 1 : 0;
