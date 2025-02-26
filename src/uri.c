@@ -120,6 +120,13 @@ int parseUriFromRequest(const char *req, struct Uri *uri)
 
     if (index <= lenRequest) {
         cc = index - start;
+        if (index > 1 && req[index - 1] == '\n') 
+        {
+            cc--;
+            if (index > 2 && req[index - 2] == '\r')
+                cc--;
+        }
+
         switch (parseState) {
             default: break;
 
