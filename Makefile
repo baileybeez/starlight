@@ -29,20 +29,16 @@ all: starlight tests
 starlight: always $(TARGET)
 
 debug: always $(TARGET) certs
-	cp $(CERT_DIR)/starlight.crt bin/starlight.crt
-	cp $(CERT_DIR)/starlight.key bin/starlight.key
-	cd $(BIN_DIR) && ./starlight
+	@cp $(CERT_DIR)/starlight.crt bin/starlight.crt
+	@cp $(CERT_DIR)/starlight.key bin/starlight.key
+	@cd $(BIN_DIR) && ./starlight
 
 runtests: tests
 	cd $(BIN_DIR)/tests && ./starlightTests
 
-certs: $(CERT_DIR)/starlight.crt $(CERT_DIR)/starlight.key
-
-$(CERT_DIR)/starlight.crt: 
-	@echo Certificate file missing! Please generate the required SSL certificates.
-
-$(CERT_DIR)/starlight.key: 
-	@echo Key file missing! Please generate the required SSL certificates.
+certs: 
+	@test -s $(CERT_DIR)/starlight.crt || { echo Certificate file missing! Please generate the required SSL certificates.; exit 1; }
+	@test -s $(CERT_DIR)/starlight.key || { echo Key file missing! Please generate the required SSL certificates.; exit 1; }
 
 tests: always $(TEST_TGT)
 
