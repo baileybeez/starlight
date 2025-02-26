@@ -2,15 +2,15 @@
 
 SYSNAME := $(shell uname -s)
 
-SRC_DIR = src
-OBJ_DIR = obj
-BIN_DIR = bin
-TEST_DIR = tests
-CERT_DIR = certs
+SRC_DIR  := src
+OBJ_DIR  := obj
+BIN_DIR  := bin
+TEST_DIR := tests
+CERT_DIR := certs
 
-CC 		 = gcc
-CC_FLAGS = -Wall -Wextra -std=c99 -pedantic -g 
-LIBS     = -lssl -lcrypto
+CC 		 := gcc
+CC_FLAGS := -Wall -Wextra -std=c99 -pedantic -g 
+LIBS     := -lssl -lcrypto
 
 SOURCES = $(wildcard $(SRC_DIR)/*.c)
 OBJECTS = $(addprefix $(OBJ_DIR)/, $(addsuffix .o, $(basename $(notdir $(SOURCES)))))
