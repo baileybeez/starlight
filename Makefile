@@ -15,6 +15,7 @@ TARGET  = $(BIN_DIR)/starlight
 
 TEST_SRC = $(wildcard $(TEST_DIR)/*.c)
 TEST_SRC += $(SRC_DIR)/uri.c
+TEST_SRC += $(SRC_DIR)/util.c
 TEST_OBJ = $(addprefix $(OBJ_DIR)/tests/, $(addsuffix .o, $(basename $(notdir $(TEST_SRC)))))
 TEST_TGT = $(BIN_DIR)/tests/starlightTests
 

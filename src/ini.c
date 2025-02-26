@@ -3,10 +3,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
-//#include <sys/types.h>
 
 #include "std.h"
 #include "ini.h"
+#include "util.h"
 
 int loadIniSettings(struct IniSettings *ini, const char *iniFilePath) {
     char *line = nil;
@@ -61,6 +61,9 @@ int loadIniSettings(struct IniSettings *ini, const char *iniFilePath) {
                 }
 
                 strcpy(ini->contentRoot, val);
+                if (!strEndsWith(ini->contentRoot, "/"))
+                    strcat(ini->contentRoot, "/");
+
                 printf("   > content root set to '%s' \n", ini->contentRoot);
             } else {
                 printf("Could not find Content Root: %s \n", val);

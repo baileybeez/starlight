@@ -11,14 +11,15 @@
 
 struct SocketServer {
     int hServer;
-    SSL_CTX *ctx;
-    SSL *ssl;
+    char certPath[kMaxPath];
+    char keyPath[kMaxPath];
+    char contentRoot[kMaxPath + 1];
     char buffer[kGeminiURIMaxLen + 1];
     struct pollfd polling[1];
-    void (*requestHandler)(const char *, SSL*);
+    void (*requestHandler)(const char *, const char *, SSL*);
 };
 
-int initializeSocketServer(struct SocketServer *server, struct IniSettings *ini, void (*requestHandler)(const char *, SSL*));
+int initializeSocketServer(struct SocketServer *server, struct IniSettings *ini, void (*requestHandler)(const char *, const char *, SSL*));
 int pollServer(struct SocketServer *server);
 int serverHasIncomingConnection(struct SocketServer *server);
 void closeServer(struct SocketServer *server);
