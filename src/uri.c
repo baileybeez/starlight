@@ -49,6 +49,7 @@ int parseUriFromRequest(const char *req, struct Uri *uri)
     int parseState = kParseState_Scheme;
     char cb = '\0';
     
+    uri->port = kGemini_DefaultPort;
     while (++index < lenRequest && req[index] != '\0') {
         cb = req[index];
         cc = index - start;
