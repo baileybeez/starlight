@@ -1,12 +1,15 @@
+.DEFAULT_GOAL := starlight
+
 SYSNAME := $(shell uname -s)
 
 SRC_DIR = src
 OBJ_DIR = obj
 BIN_DIR = bin
 TEST_DIR = tests
+CERT_DIR = certs
 
 CC 		 = gcc
-CC_FLAGS = -Wall -g 
+CC_FLAGS = -Wall -Wextra -std=c99 -pedantic -g 
 LIBS     = -lssl -lcrypto
 
 SOURCES = $(wildcard $(SRC_DIR)/*.c)
@@ -19,9 +22,27 @@ TEST_SRC += $(SRC_DIR)/util.c
 TEST_OBJ = $(addprefix $(OBJ_DIR)/tests/, $(addsuffix .o, $(basename $(notdir $(TEST_SRC)))))
 TEST_TGT = $(BIN_DIR)/tests/starlightTests
 
-.PHONY: always tests clean
+.PHONY: all always tests clean debug certs starlight
 
-all: always $(TARGET) $(TEST_TGT)
+all: starlight tests
+
+starlight: always $(TARGET)
+
+debug: always $(TARGET) certs
+	cp $(CERT_DIR)/starlight.crt bin/starlight.crt
+	cp $(CERT_DIR)/starlight.key bin/starlight.key
+	cd $(BIN_DIR) && ./starlight
+
+runtests: tests
+	cd $(BIN_DIR)/tests && ./starlightTests
+
+certs: $(CERT_DIR)/starlight.crt $(CERT_DIR)/starlight.key
+
+$(CERT_DIR)/starlight.crt: 
+	@echo Certificate file missing! Please generate the required SSL certificates.
+
+$(CERT_DIR)/starlight.key: 
+	@echo Key file missing! Please generate the required SSL certificates.
 
 tests: always $(TEST_TGT)
 
