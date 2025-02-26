@@ -3,53 +3,68 @@
 #include "../src/uri.h"
 #include "../src/util.h"
 
-void testUri(const char *name, const char *str) {
-    printf("********************************\nTEST: %s\nURI : %s\n\n", name, str);
+#include "simpleTests.h"
 
-    int len = strlen(str);
-    if (len > kMaxUri_TotalLength) {
-        printf("    !! URI too long. Length is %d, Max is %d.\n", len, kMaxUri_TotalLength);
+void endsWithTest(const char *testName, const char *str, const char *sfx, int expected)
+{
+    int ret = strEndsWith(str, sfx);
+    if (expected == 0) {
+        assertAreEqual(ret, expected, testName, "EndsWith passed but was expected to fail");
+    } else {
+        assertAreEqual(ret, expected, testName, "EndsWith didn't find expected end");
     }
-    
-    struct Uri uri;
-    memset(&uri, 0, sizeof(uri));
-    int ret = parseUriFromRequest(str, &uri);
-    if (ret != 1) {
-        printf("    !! parseUriFromRequest failed! %d \n", ret);
-    }
-
-    printf("> Scheme :: %s \n", uri.scheme);
-    printf("> Domain :: %s \n", uri.domain);
-    printf("> Port   :: %d \n", uri.port);
-    printf("> Path   :: %s \n", uri.path);
-    printf("> User   :: %s \n", uri.user);
+    testPassed(testName);
 }
 
-void endsWithTest(const char *str, const char *sfx)
+void testUri(const char *testName, const char *request, const char *scheme, const char *domain, int port, const char *path, const char *user) 
 {
-    printf("********************************\nSTR: %s\nSFX : %s\n\n", str, sfx);
-    int ret = strEndsWith(str, sfx);
-    if (ret == 0)
-        printf("> String doesn't end with suffix.\n");
-    else 
-        printf("> String ends with suffix.\n");
+    assertLessThan(strlen(request), kMaxUri_TotalLength, testName, "request string too long!");
+
+    struct Uri uri;
+    memset(&uri, 0, sizeof(uri));
+
+    int ret = parseUriFromRequest(request, &uri);
+    assertAreEqual(ret, 1, nil, "Failed to parse URI from request");
+    
+    assertAreEqual(uri.scheme, scheme, testName, "wrong scheme");
+    assertAreEqual(uri.domain, domain, testName, "wrong domain");
+    assertAreEqual(uri.port, port, testName, "wrong port");
+    assertAreEqual(uri.path, path, testName, "wrong path");
+    assertAreEqual(uri.user, user, testName, "wrong user state");
+
+    testPassed(testName);
+}
+
+void testUriFailParse(const char *testName, const char *request)
+{
+    assertLessThan(strlen(request), kMaxUri_TotalLength, testName, "request string too long!");
+
+    struct Uri uri;
+    memset(&uri, 0, sizeof(uri));
+
+    int ret = parseUriFromRequest(request, &uri);
+    assertLessThan(ret, 0, nil, "Parse URI was expected to fail.");
+    testPassed(testName);
 }
 
 int main (int argc, char **argv) {
     const char *properUri = "gemini://mydomain.com:80/path/to/folder/file.gmi?user_state=1234";
     const char *simpleUri = "gemini://mydomain.com/";
     const char *localUri = "gemini://localhost";
-    const char *htmlUri = "https://www.mydomain.com/path/to/folder/file.html?search";
+    const char *noSuffixUri = "gemini://mydomain.com";
+    const char *httpsUri = "https://www.mydomain.com/path/to/folder/file.html?search";
     const char *invalidScheme = "this_is_an_invalid_scheme://mydomain.com:80/path/to/folder/file.gmi?user_state=1234";
     
-    testUri("Proper Format", properUri);
-    testUri("Simple Url", simpleUri);
-    testUri("HTML Url", htmlUri);
-    testUri("Localhost", localUri);
-    testUri("Invalid Scheme", invalidScheme);
+    testUri("URI - Proper", properUri, "gemini", "mydomain.com", 80, "path/to/folder/file.gmi", "user_state=1234");
+    testUri("URI - Simple", simpleUri, "gemini", "mydomain.com", kGemini_DefaultPort, "", "");
+    testUri("URI - Https", httpsUri, "https", "www.mydomain.com", kGemini_DefaultPort, "path/to/folder/file.html", "search");
+    testUri("URI - Local", localUri, "gemini", "localhost", kGemini_DefaultPort, "", "");
+    testUri("URI - No Suffix", noSuffixUri, "gemini", "mydomain.com", kGemini_DefaultPort, "", "");
+    testUriFailParse("URI - Invalid Scheme", invalidScheme);
  
-    endsWithTest("gemini://example.com/", "/");
-    endsWithTest(localUri, "/");
+    endsWithTest("strEndsWith - True", simpleUri, "/", 1);
+    endsWithTest("strEndsWith - False", noSuffixUri, "/", 0);
     
+    finishTesting();
     return 0;
 }
