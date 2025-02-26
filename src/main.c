@@ -11,9 +11,11 @@
 #include "util.h"
 #include "ini.h"
 #include "server.h"
+#include "gemini.h"
 
 #define kStarlightIni "./starlight.ini"
 #define kReadBufferSize 1024
+#define kMaxBuffer kReadBufferSize
 
 #define kResponse_GeneralError   "50\r\n"
 
@@ -88,11 +90,11 @@ int parseRequestIntoPath(const char *req, const char *contentRoot, /*OUT*/ char 
     return 0;
 }
 
-void respondWithNotFound(SSL *ssl)
+void respondWithStatusCode(SSL *ssl, int code, const char *msg)
 {
-    // 51 (file not found)
-    const char *msg = "51 Unable to locate request.\r\n";
-    SSL_write(ssl, msg, (int)strlen(msg));
+    char str[kMaxBuffer];
+    sprintf(str, "%d %s\r\n", code, msg);
+    SSL_write(ssl, str, strlen(str));
 }
 
 void handleRequest(const char *req, const char *contentRoot, SSL *ssl) 
@@ -104,26 +106,32 @@ void handleRequest(const char *req, const char *contentRoot, SSL *ssl)
     memset(&uri, 0, sizeof(uri));
     ret = parseUriFromRequest(req, &uri);
     if (ret != 1) {
-        SSL_write(ssl, kResponse_GeneralError, (int)strlen(kResponse_GeneralError));
+        respondWithStatusCode(ssl, kGeminiStatus_GeneralError, "");
         return;
     }
 
     ret = parseRequestIntoPath(uri.path, contentRoot, localPath);
     printf("parsed request: %s\n", localPath);
     if (ret < 0) {
-        respondWithNotFound(ssl);
+        respondWithStatusCode(ssl, 
+            kGeminiStatus_FileNotFound, 
+            kGeminiString_FileNotFound);
         return;
     }
 
     FILE *file = fopen(localPath, "r");
     if (file == nil) {
-        respondWithNotFound(ssl);
+        respondWithStatusCode(ssl, 
+            kGeminiStatus_FileNotFound, 
+            kGeminiString_FileNotFound);
         return;
     } 
 
     char buff[kReadBufferSize + 1];
     size_t read = 0;
     int wrote = 0;
+
+    respondWithStatusCode(ssl, kGeminiState_OK, kMimeType_GeminiDocument);
     while ((read = fread(buff, 1, kReadBufferSize, file)) > 0) {
         wrote = SSL_write(ssl, buff, read);
     }
