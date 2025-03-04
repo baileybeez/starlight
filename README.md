@@ -1,6 +1,6 @@
 # Starlight
 
-Starlight is a web server for the gemini protocol. 
+Starlight is a web server for the [gemini protocol](https://geminiprotocol.net/). 
 
 > [!WARNING]
 > This software is far from complete and may crash or be missing features. Keep your expectations low.
